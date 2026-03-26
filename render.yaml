@@ -8,7 +8,7 @@ services:
     region: singapore
     plan: free                    # Free tier (spins down after 15 min idle)
     buildCommand: npm ci && cd apps/api && npm run build
-    startCommand: cd apps/api && npm run migrate:up && npm run start
+    startCommand: cd apps/api && npm run start:prod
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV
@@ -39,3 +39,5 @@ services:
         value: info
       - key: SENTRY_DSN
         sync: false
+      - key: PGSSLMODE
+        value: no-verify
