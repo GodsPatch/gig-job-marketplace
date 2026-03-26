@@ -24,18 +24,17 @@ function asyncHandler(fn: (req: Request, res: Response) => Promise<void>) {
   };
 }
 
-// All user routes require authentication
-router.use(authMiddleware);
-
 // GET /api/v1/users/me
 router.get(
   '/users/me',
+  authMiddleware,
   asyncHandler((req, res) => userController.getProfile(req, res)),
 );
 
 // PATCH /api/v1/users/me
 router.patch(
   '/users/me',
+  authMiddleware,
   validate({ body: updateProfileSchema }),
   asyncHandler((req, res) => userController.updateProfile(req, res)),
 );

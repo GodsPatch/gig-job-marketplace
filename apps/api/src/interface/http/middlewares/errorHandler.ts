@@ -126,6 +126,11 @@ export function errorHandler(
   if (config.NODE_ENV !== 'production' && err.stack) {
     errorResponse.stack = err.stack;
   }
+  
+  // TEMPORARY FIX TO DEBUG PRODUCTION 500 ERROR
+  if (config.NODE_ENV === 'production') {
+    errorResponse.details = err.message;
+  }
 
   res.status(statusCode).json({
     success: false,
