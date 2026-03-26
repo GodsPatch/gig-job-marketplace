@@ -3,7 +3,7 @@ import { RegisterUseCase } from '../../../application/use-cases/auth/RegisterUse
 import { LoginUseCase } from '../../../application/use-cases/auth/LoginUseCase';
 import { RefreshTokenUseCase } from '../../../application/use-cases/auth/RefreshTokenUseCase';
 import { LogoutUseCase } from '../../../application/use-cases/auth/LogoutUseCase';
-import { config } from '../../../infrastructure/config';
+
 
 // Cookie name for refresh token
 const REFRESH_TOKEN_COOKIE = 'refreshToken';
@@ -12,8 +12,8 @@ const REFRESH_TOKEN_COOKIE = 'refreshToken';
 function getRefreshCookieOptions() {
   return {
     httpOnly: true,
-    secure: config.NODE_ENV === 'production',
-    sameSite: 'strict' as const,
+    secure: true,
+    sameSite: 'none' as const,
     path: '/api/v1/auth',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
   };
@@ -120,8 +120,8 @@ export class AuthController {
     // Clear refresh token cookie
     res.clearCookie(REFRESH_TOKEN_COOKIE, {
       httpOnly: true,
-      secure: config.NODE_ENV === 'production',
-      sameSite: 'strict' as const,
+      secure: true,
+      sameSite: 'none' as const,
       path: '/api/v1/auth',
     });
 

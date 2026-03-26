@@ -156,15 +156,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Register — call API, set state.
    */
   const register = useCallback(async (data: RegisterData) => {
-    dispatch({ type: 'AUTH_START' });
     try {
-      const result = await authApi.register(data);
-      dispatch({
-        type: 'AUTH_SUCCESS',
-        payload: { user: result.user, accessToken: result.accessToken },
-      });
+      await authApi.register(data);
+      // Don't auto-login. User will be redirected to /login page.
     } catch (error) {
-      dispatch({ type: 'AUTH_FAILURE' });
       throw error;
     }
   }, []);

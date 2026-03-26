@@ -21,6 +21,7 @@ export function RegisterForm() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
@@ -53,6 +54,7 @@ export function RegisterForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
 
     if (!validateForm()) return;
 
@@ -64,7 +66,8 @@ export function RegisterForm() {
         fullName: formData.fullName,
         role: formData.role,
       });
-      router.push('/dashboard');
+      setSuccessMessage('🎉 Đăng ký thành công! Đang chuyển đến trang đăng nhập...');
+      setTimeout(() => router.push('/login'), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đăng ký thất bại');
     } finally {
@@ -88,6 +91,12 @@ export function RegisterForm() {
             Tạo tài khoản mới trên Gig Marketplace
           </p>
         </div>
+
+        {successMessage && (
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+            <p className="text-green-700 dark:text-green-300 text-sm font-medium">{successMessage}</p>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">

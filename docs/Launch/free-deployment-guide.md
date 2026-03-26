@@ -131,8 +131,8 @@ Nếu thấy `Migrations completed` → ✅ Database OK!
 | **Region** | `Singapore (Southeast Asia)` |
 | **Branch** | `main` |
 | **Runtime** | `Node` |
-| **Build Command** | `npm ci && cd apps/api && npm run build` |
-| **Start Command** | `cd apps/api && npm run start` |
+| **Build Command** | `npm install --include=dev && cd apps/api && npm run build` |
+| **Start Command** | `cd apps/api && npm run start:prod` |
 | **Plan** | **Free** |
 
 5. Cuộn xuống phần **Environment Variables** → click **Add Environment Variable**:
