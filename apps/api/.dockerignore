@@ -1,0 +1,16 @@
+node_modules
+dist
+.env
+.env.*
+!.env.production.example
+npm-debug.log*
+*.test.ts
+__tests__
+coverage
+.git
+.github
+.eslintrc*
+jest.config.*
+tsconfig.json
+README.md
+docs

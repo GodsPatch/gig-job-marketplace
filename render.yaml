@@ -1,0 +1,41 @@
+# render.yaml — Render.com Blueprint
+# Free tier backend deployment
+
+services:
+  - type: web
+    name: gig-marketplace-api
+    runtime: node
+    region: singapore
+    plan: free                    # Free tier (spins down after 15 min idle)
+    buildCommand: npm ci && cd apps/api && npm run build
+    startCommand: cd apps/api && npm run start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: DATABASE_URL
+        sync: false               # Set manually in Render dashboard
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true       # Auto-generate random secret
+      - key: REFRESH_TOKEN_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        sync: false               # Set to your Vercel URL
+      - key: FRONTEND_URL
+        sync: false
+      - key: LOG_LEVEL
+        value: info
+      - key: SENTRY_DSN
+        sync: false

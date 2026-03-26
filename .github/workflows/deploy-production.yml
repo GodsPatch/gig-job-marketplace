@@ -1,0 +1,209 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy-production" to confirm'
+        required: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ───────────────────────────────────────────────
+  # Step 1: Validate deployment confirmation
+  # ───────────────────────────────────────────────
+  validate:
+    name: Validate Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm deployment
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "deploy-production" ]; then
+            echo "❌ Deployment not confirmed. Type 'deploy-production' to proceed."
+            exit 1
+          fi
+          echo "✅ Deployment confirmed by ${{ github.actor }}"
+
+  # ───────────────────────────────────────────────
+  # Step 2: Full CI (lint, typecheck, audit, test, build)
+  # ───────────────────────────────────────────────
+  test:
+    name: Full CI Check
+    needs: validate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: gig_marketplace_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gig_marketplace_test
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: gig_marketplace_test
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: ci-test-secret-must-be-at-least-32-chars-long-for-security
+      REFRESH_TOKEN_SECRET: ci-refresh-secret-must-be-at-least-32-chars-long
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Security audit
+        run: npm audit --audit-level=high
+
+      - name: Run migrations (test DB)
+        run: npm run migrate:up -w apps/api
+
+      - name: Run backend tests
+        run: npm run test -w apps/api -- --coverage --passWithNoTests
+
+      - name: Run frontend tests
+        run: npm run test -w apps/web -- --coverage --passWithNoTests
+
+      - name: Build all
+        run: npm run build
+
+  # ───────────────────────────────────────────────
+  # Step 3a: Deploy Backend to DigitalOcean
+  # ───────────────────────────────────────────────
+  deploy-backend:
+    name: Deploy Backend (DO App Platform)
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to DigitalOcean App Platform
+        uses: digitalocean/app_action@v1
+        with:
+          app_name: gig-marketplace-api
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+  # ───────────────────────────────────────────────
+  # Step 3b: Deploy Frontend to Vercel
+  # ───────────────────────────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend (Vercel)
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Deploy to Vercel
+        run: npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  # ───────────────────────────────────────────────
+  # Step 4: Post-deploy Smoke Tests
+  # ───────────────────────────────────────────────
+  smoke-test:
+    name: Smoke Tests
+    needs: [deploy-backend, deploy-frontend]
+    runs-on: ubuntu-latest
+    env:
+      API_URL: https://api.gigmarketplace.vn   # ← Thay bằng domain thật
+      WEB_URL: https://gigmarketplace.vn        # ← Thay bằng domain thật
+    steps:
+      - name: Wait for deployment propagation
+        run: sleep 60
+
+      - name: API Health Check
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.API_URL }}/api/v1/health)
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ API health check failed: HTTP $STATUS"
+            exit 1
+          fi
+          echo "✅ API health check passed"
+
+      - name: API Deep Health Check
+        run: |
+          RESPONSE=$(curl -sf ${{ env.API_URL }}/api/v1/health/deep)
+          echo "$RESPONSE"
+          echo "✅ API deep health check passed"
+
+      - name: Frontend Health Check
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.WEB_URL }})
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Frontend health check failed: HTTP $STATUS"
+            exit 1
+          fi
+          echo "✅ Frontend health check passed"
+
+      - name: API Endpoint Smoke Tests
+        run: |
+          echo "Testing /api/v1/categories..."
+          curl -sf ${{ env.API_URL }}/api/v1/categories > /dev/null
+          echo "✅ Categories endpoint OK"
+
+          echo "Testing /api/v1/jobs/public..."
+          curl -sf ${{ env.API_URL }}/api/v1/jobs/public > /dev/null
+          echo "✅ Public jobs endpoint OK"
+
+          echo "Testing /api/v1/skills..."
+          curl -sf ${{ env.API_URL }}/api/v1/skills > /dev/null
+          echo "✅ Skills endpoint OK"
+
+          echo ""
+          echo "🎉 All smoke tests passed!"
+
+  # ───────────────────────────────────────────────
+  # Step 5: Notification
+  # ───────────────────────────────────────────────
+  notify:
+    name: Deployment Notification
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Report deployment result
+        run: |
+          if [ "${{ needs.smoke-test.result }}" == "success" ]; then
+            echo "🚀 Production deployment SUCCESSFUL!"
+            echo "   Deployed by: ${{ github.actor }}"
+            echo "   Commit: ${{ github.sha }}"
+          else
+            echo "❌ Production deployment FAILED!"
+            echo "   Check the logs above for details."
+            echo "   Consider rollback if needed."
+          fi
