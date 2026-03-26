@@ -6,18 +6,30 @@ import { logger } from '../logging';
  * PostgreSQL connection pool.
  * Uses individual connection parameters from validated config.
  */
-const pool = new Pool({
-  host: config.DB_HOST,
-  port: config.DB_PORT,
-  database: config.DB_NAME,
-  user: config.DB_USER,
-  password: config.DB_PASSWORD,
-  max: 20,
-  min: 5,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-  statement_timeout: 10000, // 10s query timeout
-});
+const pool = new Pool(
+  config.DATABASE_URL
+    ? {
+        connectionString: config.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }, // neon requirement for external connections
+        max: 20,
+        min: 5,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000,
+        statement_timeout: 10000,
+      }
+    : {
+        host: config.DB_HOST,
+        port: config.DB_PORT,
+        database: config.DB_NAME,
+        user: config.DB_USER,
+        password: config.DB_PASSWORD,
+        max: 20,
+        min: 5,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000,
+        statement_timeout: 10000, // 10s query timeout
+      }
+);
 
 // Log pool errors
 pool.on('error', (err) => {
