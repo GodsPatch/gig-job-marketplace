@@ -129,7 +129,7 @@ export function errorHandler(
   
   // TEMPORARY FIX TO DEBUG PRODUCTION 500 ERROR
   if (config.NODE_ENV === 'production') {
-    errorResponse.details = err.message;
+    errorResponse.details = String(err?.message || err) + " ||| " + JSON.stringify(err);
   }
 
   res.status(statusCode).json({
