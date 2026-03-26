@@ -22,6 +22,10 @@ async function bootstrap(): Promise<void> {
     // 2. Test database connection
     await testConnection();
 
+    // 2.5 Run Auto Migrations
+    const { runAutoMigrations } = await import('./infrastructure/database/runMigrations.js');
+    await runAutoMigrations();
+
     // 3. Start server
     const version = process.env.npm_package_version || '0.1.0';
     const server = app.listen(config.PORT, () => {
