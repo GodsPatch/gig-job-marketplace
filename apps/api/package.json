@@ -6,7 +6,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "start:prod": "PGSSLMODE=no-verify npm run migrate:up && NODE_ENV=production node dist/server.js",
+    "start:prod": "NODE_ENV=production node dist/server.js",
     "lint": "eslint src/ --ext .ts",
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",
