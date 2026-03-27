@@ -3,6 +3,7 @@ import { logger } from './infrastructure/logging';
 import { initSentry } from './infrastructure/error-tracking/sentry';
 import { testConnection, closePool } from './infrastructure/database/connection';
 import { app } from './app';
+import { runAutoMigrations } from './infrastructure/database/runMigrations';
 
 /**
  * Server entry point.
@@ -23,7 +24,6 @@ async function bootstrap(): Promise<void> {
     await testConnection();
 
     // 2.5 Run Auto Migrations
-    const { runAutoMigrations } = await import('./infrastructure/database/runMigrations.js');
     await runAutoMigrations();
 
     // 3. Start server
