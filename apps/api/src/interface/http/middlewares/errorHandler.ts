@@ -126,6 +126,10 @@ export function errorHandler(
   if (config.NODE_ENV !== 'production' && err.stack) {
     errorResponse.stack = err.stack;
   }
+  
+  if (config.NODE_ENV === 'production') {
+    errorResponse.details = String(err?.message || err) + " ||| " + JSON.stringify(err);
+  }
 
   res.status(statusCode).json({
     success: false,
